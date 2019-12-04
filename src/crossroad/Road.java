@@ -6,6 +6,7 @@
 
 package crossroad;
 
+import java.awt.Dimension;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.File;
@@ -16,7 +17,6 @@ import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
-import static javax.swing.JOptionPane.YES_OPTION;
 
 /**
  *
@@ -30,6 +30,7 @@ public class Road extends JFrame{
     private JLabel lChicken = new JLabel(iconChicken);
     private ArrayList<JLabel> othersChickens = new ArrayList<>();
     private ArrayList<JLabel> cars;
+    private int[] posCars;
     
     
     private int posChickenX, posChickenXInitial;
@@ -41,37 +42,62 @@ public class Road extends JFrame{
         this.posChickenY = posChickenY;
         this.posChickenXInitial = posChickenX;
         this.posChickenYInitial = posChickenY;
+        this.cars = new ArrayList<>();
+        this.posCars = new int[160];
         this.initCarsRight();
+        this.initCarsLeft();
         this.addMoviments();
         new MoveCarsRight().start();
+        new MoveCarsLeft().start();
     }
     
     public void initCarsRight(){
         
-        cars = new ArrayList<>();
-        File dir = new File("..\\images\\carsright");
-        
-        File files[] = dir.listFiles();
-        
-        if(!dir.exists()) System.out.println("oiiiiiiiii");
-        
-        //String images[] = dir.list();
+        File dir = new File("src\\images\\carsright");
+       
+        String images[] = dir.list();
         int pos[] = new int[4];
         pos[0] = 556;
         pos[1] = 468;
         pos[2] = 424;
         pos[3] = 336;
         
-        //System.out.println(images[0]);
-        
-        for(int i=0; i<30; i++){
-            
-            Random image = new Random();
-            ImageIcon iconCar = new ImageIcon(getClass().getResource("..\\images\\carsright\\formula.png"));
-            JLabel car = new JLabel(iconCar);
-            car.setBounds((-80-i-(image.nextInt(6000))), pos[image.nextInt(pos.length)], 100, 100);
-            cars.add(car);
+        int countCars = 0;
+        for(int k=0; k<4; k++){
+            for(int i=0; i<4; i++){
+                Random image = new Random();
+                ImageIcon iconCar = new ImageIcon(getClass().getResource("..\\images\\carsright\\"+images[image.nextInt(images.length)]));
+                JLabel car = new JLabel(iconCar);
+                car.setBounds((-80-(i*500)), pos[k], 100, 100);
+                pos[countCars] = (-80-(i*500));
+                cars.add(car);
+            }
         }
+    }
+    
+    public void initCarsLeft(){
+        
+        File dir = new File("src\\images\\carsleft");
+       
+        String images[] = dir.list();
+        int pos[] = new int[40];
+        pos[0] = 292;
+        pos[1] = 204;
+        pos[2] = 132;
+        pos[3] = 72;
+        
+        int countCars = 0;
+        for(int k=0; k<4; k++){
+            for(int i=0; i<4; i++){
+                Random image = new Random();
+                ImageIcon iconCar = new ImageIcon(getClass().getResource("..\\images\\carsright\\"+images[image.nextInt(images.length)]));
+                JLabel car = new JLabel(iconCar);
+                car.setBounds((1280+(i*500)), pos[k], 100, 100);
+                pos[countCars] = (1280+(i*500));
+                cars.add(car);
+            }
+        }
+        System.out.println(cars.size());
     }
     
     public void initRoad(){
@@ -81,6 +107,7 @@ public class Road extends JFrame{
         setLocationRelativeTo(null);
         setVisible(true);
         setLayout(null);
+        setResizable(false);
         
         add(lChicken);
         
@@ -105,9 +132,12 @@ public class Road extends JFrame{
 
             @Override
             public void keyPressed(KeyEvent ke) {
+                int auxX = posChickenX;
+                int auxY = posChickenY;
                 //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
                 if(ke.getKeyCode() == 37){
-                    posChickenX -= 64;
+                    if((auxX -= 64) > 0)
+                        posChickenX -= 64;
                 }
                 
                 if(ke.getKeyCode() == 38){
@@ -115,25 +145,27 @@ public class Road extends JFrame{
                 }
                 
                 if(ke.getKeyCode() == 39){
-                    posChickenX += 64;
+                    if((auxX += 64) < 1260)
+                        posChickenX += 64;
                 }
                 
                 if(ke.getKeyCode() == 40){
-                    posChickenY += 44;
+                    if((auxY += 44) <= 600)
+                        posChickenY += 44;
                 }
                 
                 System.out.println("x " + posChickenX);
                 System.out.println("y " + posChickenY);
                 
-                if((posChickenX > 0 && posChickenX < 1200) && (posChickenY > 0 && posChickenY < 600)){
+                if((posChickenX > 0 && posChickenX < 1200) && (posChickenY > 0 && posChickenY <= 600)){
                     lChicken.setBounds(posChickenX, posChickenY, 64, 64);
-                }else{
+                }else if(posChickenY < 0){
                     posChickenX = posChickenXInitial;
                     posChickenY = posChickenYInitial;
                     lChicken.setBounds(posChickenXInitial, posChickenYInitial, 64, 64);
                 }
             }
-//556
+
             @Override
             public void keyReleased(KeyEvent ke) {
                 //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
@@ -143,11 +175,7 @@ public class Road extends JFrame{
  
     public class MoveCarsRight extends Thread{
         @Override
-        public void run(){
-            Random gerador = new Random();
-            int aleatorio;
-            int pontos = 0, op, op2;
-            
+        public void run(){    
             while(true){
                 
                 try {
@@ -184,6 +212,52 @@ public class Road extends JFrame{
                             cars.get(i).setBounds(-80, cars.get(i).getY(), 100, 100);
 
                         cars.get(i).setBounds((cars.get(i).getX() + 10), cars.get(i).getY(), 100, 100);
+                    }
+                }    
+            }
+        }
+    }
+    
+     public class MoveCarsLeft extends Thread{
+        @Override
+        public void run(){
+            
+            while(true){
+                
+                try {
+                    sleep(15);
+                } catch (InterruptedException ex) {
+                    JOptionPane.showMessageDialog(null, "Erro na Thread" + ex.getMessage());
+                }
+                
+                for(int i=(cars.size()/2); i<cars.size(); i++){
+                    
+                    if(cars.get(i).getY() == 72){
+                        if(cars.get(i).getX() < -80)
+                            cars.get(i).setBounds(1280, cars.get(i).getY(), 100, 100);
+
+                        cars.get(i).setBounds((cars.get(i).getX() - 2), cars.get(i).getY(), 100, 100);
+                    }
+                    
+                    if(cars.get(i).getY() == 132){
+                        if(cars.get(i).getX() < -80)
+                            cars.get(i).setBounds(1280, cars.get(i).getY(), 100, 100);
+
+                        cars.get(i).setBounds((cars.get(i).getX() - 3), cars.get(i).getY(), 100, 100);
+                    }
+                    
+                    if(cars.get(i).getY() == 204){
+                        if(cars.get(i).getX() < -80)
+                            cars.get(i).setBounds(1280, cars.get(i).getY(), 100, 100);
+
+                        cars.get(i).setBounds((cars.get(i).getX() - 7), cars.get(i).getY(), 100, 100);
+                    }
+                    
+                    if(cars.get(i).getY() == 292){
+                        if(cars.get(i).getX() < -80)
+                            cars.get(i).setBounds(1280, cars.get(i).getY(), 100, 100);
+
+                        cars.get(i).setBounds((cars.get(i).getX() - 10), cars.get(i).getY(), 100, 100);
                     }
                 }    
             }
