@@ -6,17 +6,23 @@
 
 package crossroad;
 
-import java.awt.Dimension;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.File;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import static java.lang.Thread.sleep;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import sun.rmi.server.UnicastRef;
 
 /**
  *
@@ -24,24 +30,34 @@ import javax.swing.JOptionPane;
  */
 public class Road extends JFrame{
     
-    private ImageIcon iconFreeway = new ImageIcon(getClass().getResource("..\\images\\background.png"));
-    private JLabel lRoad = new JLabel(iconFreeway);
-    private ImageIcon iconChicken = new ImageIcon(getClass().getResource("..\\images\\chicken.gif"));
-    private JLabel lChicken = new JLabel(iconChicken);
-    private ArrayList<JLabel> othersChickens = new ArrayList<>();
-    private ArrayList<JLabel> cars;
-    private int[] posCars;
-    
+    private final ImageIcon iconFreeway;
+    private final JLabel lRoad;
+    private final ImageIcon iconChicken;
+    private final JLabel lChicken;
+    private final ArrayList<JLabel> othersChickens;
+    private final ArrayList<JLabel> cars;
+    private final int[] posCars;
     
     private int posChickenX, posChickenXInitial;
     private int posChickenY, posChickenYInitial;
+    
+    private int id, port;
+    private Integer[][] posChickens = new Integer[4][4];
 
-    public Road(int posChickenX, int posChickenY) {
+    public Road(int posChickenX, int posChickenY, int id, int port) {
         
+        this.iconFreeway = new ImageIcon(getClass().getResource("..\\images\\background.png"));
+        this.lRoad = new JLabel(iconFreeway);
+        this.iconChicken = new ImageIcon(getClass().getResource("..\\images\\chicken.gif"));
+        this.lChicken = new JLabel(iconChicken);
+        this.othersChickens = new ArrayList<>();
         this.posChickenX = posChickenX;
         this.posChickenY = posChickenY;
         this.posChickenXInitial = posChickenX;
         this.posChickenYInitial = posChickenY;
+        this.id = id;
+        this.port = port;
+        this.initOtherChickens();
         this.cars = new ArrayList<>();
         this.posCars = new int[160];
         this.initCarsRight();
@@ -49,9 +65,18 @@ public class Road extends JFrame{
         this.addMoviments();
         new MoveCarsRight().start();
         new MoveCarsLeft().start();
+        new MoveChikens().start();
     }
     
-    public void initCarsRight(){
+    private void initOtherChickens(){
+        
+        for (int i=0; i<3; i++){
+            othersChickens.add(new JLabel(iconChicken));
+            othersChickens.get(i).setBounds(posChickenXInitial, posChickenYInitial, 64, 64);
+        }
+    }
+    
+    private void initCarsRight(){
         
         File dir = new File("src\\images\\carsright");
        
@@ -75,7 +100,7 @@ public class Road extends JFrame{
         }
     }
     
-    public void initCarsLeft(){
+    private void initCarsLeft(){
         
         File dir = new File("src\\images\\carsleft");
        
@@ -97,7 +122,7 @@ public class Road extends JFrame{
                 cars.add(car);
             }
         }
-        System.out.println(cars.size());
+        //System.out.println(cars.size());
     }
     
     public void initRoad(){
@@ -111,6 +136,10 @@ public class Road extends JFrame{
         
         add(lChicken);
         
+        for (int i=0; i<othersChickens.size(); i++){
+            add(othersChickens.get(i));
+        }
+        
         for (int i=0; i<cars.size(); i++){
             add(cars.get(i));
         }
@@ -123,7 +152,7 @@ public class Road extends JFrame{
         lChicken.setBounds(posChickenXInitial, posChickenYInitial, 64, 64);
     }
     
- public void addMoviments(){
+ private void addMoviments(){
         addKeyListener(new KeyListener() {
             @Override
             public void keyTyped(KeyEvent ke) {
@@ -136,26 +165,30 @@ public class Road extends JFrame{
                 int auxY = posChickenY;
                 //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
                 if(ke.getKeyCode() == 37){
-                    if((auxX -= 64) > 0)
+                    if((auxX -= 64) > 0){
                         posChickenX -= 64;
+                        new SendChicken(id, posChickenX, posChickenY).start();
+                    }
                 }
                 
                 if(ke.getKeyCode() == 38){
                     posChickenY -= 44;
+                    new SendChicken(id, posChickenX, posChickenY).start();
                 }
                 
                 if(ke.getKeyCode() == 39){
-                    if((auxX += 64) < 1260)
+                    if((auxX += 64) < 1260){
                         posChickenX += 64;
+                        new SendChicken(id, posChickenX, posChickenY).start();
+                    }
                 }
                 
                 if(ke.getKeyCode() == 40){
-                    if((auxY += 44) <= 600)
+                    if((auxY += 44) <= 600){
                         posChickenY += 44;
+                        new SendChicken(id, posChickenX, posChickenY).start();
+                    }
                 }
-                
-                System.out.println("x " + posChickenX);
-                System.out.println("y " + posChickenY);
                 
                 if((posChickenX > 0 && posChickenX < 1200) && (posChickenY > 0 && posChickenY <= 600)){
                     lChicken.setBounds(posChickenX, posChickenY, 64, 64);
@@ -263,12 +296,109 @@ public class Road extends JFrame{
             }
         }
     }
-    
-    public static void main(String[] args) {
+     
+    public class MoveChikens extends Thread{
         
-        Road game = new Road(44, 600);
-        game.initRoad();
-        game.editComponents();
+        @Override
+        public void run(){
+            
+            while(true){
+                
+                Socket client = null;
+                
+                try {
+                    client = new Socket("192.168.0.100", port+200);
+                } catch (IOException ex) {
+                    Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                
+                ObjectInputStream io = null;
+                
+                try {
+                    io = new ObjectInputStream(client.getInputStream());
+                } catch (IOException ex) {
+                    Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                
+                try {
+                    posChickens = (Integer[][]) io.readObject();
+                } catch (IOException ex) {
+                    Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (ClassNotFoundException ex) {
+                    Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                
+                for (int i=0; i<posChickens.length; i++){
+                    if(i != id){
+                        try{
+                            othersChickens.get(i).setBounds(posChickens[i][1], posChickens[i][2], 64, 64);
+                        }catch(Exception e){
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+        
     }
     
+    public class SendChicken extends Thread{
+        
+        public int id, x, y;
+        
+        public SendChicken(int id, int x, int y){
+            
+            this. id = id;
+            this.x = x;
+            this.y = y;
+        }
+        
+        @Override
+        public void run(){
+            
+            Socket client = null;
+            
+            try {
+                client = new Socket("192.168.0.100", port+100);
+            } catch (IOException ex) {
+                Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+            Integer[] pos = new Integer[3];
+            pos[0] = id;
+            pos[1] = x;
+            pos[2] = y;
+            
+            ObjectOutputStream io = null;
+            try {
+                io = new ObjectOutputStream(client.getOutputStream());
+            } catch (IOException ex) {
+                Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+            try {
+                io.flush();
+            } catch (IOException ex) {
+                Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+            try {
+                io.writeObject(pos);
+            } catch (IOException ex) {
+                Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+            try {
+                io.close();
+            } catch (IOException ex) {
+                Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+            try {
+                client.close();
+            } catch (IOException ex) {
+                Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
 }
