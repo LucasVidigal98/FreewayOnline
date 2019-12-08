@@ -18,9 +18,11 @@ public class Main {
     public static void main(String[] args) throws IOException, ClassNotFoundException {
         
         int port = 10000;
+        int oldPort = port;
         int id = 0;
+        int numberConections = 0;
         while (true){
-            
+            System.out.println("Aqui");
             try{
 
                 Socket client = new Socket("192.168.0.100", port);
@@ -33,25 +35,28 @@ public class Main {
                
             }catch(IOException | ClassNotFoundException e){
                 port += 1;
-                if(port > 10003) port = 10000;
+                numberConections++;
                 System.out.println("Erro " + e.getMessage());
             }
         }
         
-        if (id == 0) port = 10100;
-        else if (id == 1) port = 10101;
-        else if (id == 2) port = 10102;
-        else if (id == 3) port = 10103;
+        System.out.println(port);
+        port += 100;
+        System.out.println(port);
         
         boolean play = false;
         
         while (true){
             
-            Socket client = new Socket("192.168.0.100", port);
-            ObjectInputStream io = new ObjectInputStream(client.getInputStream());
-            play = (boolean)io.readObject();
+            try{
+                Socket client = new Socket("192.168.0.100", port);
+                ObjectInputStream io = new ObjectInputStream(client.getInputStream());
+                play = (boolean)io.readObject();
+            }catch (Exception e){
+                System.out.println("Erro " + e.getMessage());
+            }
             
-            System.out.println(play);
+            //System.out.println(play);
             
             if(play) break;
             

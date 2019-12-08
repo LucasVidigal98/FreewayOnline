@@ -6,6 +6,11 @@
 
 package crossroad;
 
+import java.applet.Applet;
+import java.applet.AudioClip;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.File;
@@ -14,6 +19,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import static java.lang.Thread.sleep;
 import java.net.Socket;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.logging.Level;
@@ -22,7 +28,6 @@ import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
-import sun.rmi.server.UnicastRef;
 
 /**
  *
@@ -34,12 +39,16 @@ public class Road extends JFrame{
     private final JLabel lRoad;
     private final ImageIcon iconChicken;
     private final JLabel lChicken;
+    private final ImageIcon explosion;
+    private final JLabel lExplosion;
+    private final JLabel lscore;
     private final ArrayList<JLabel> othersChickens;
     private final ArrayList<JLabel> cars;
     private final int[] posCars;
     
     private int posChickenX, posChickenXInitial;
     private int posChickenY, posChickenYInitial;
+    private int score;
     
     private int id, port;
     private Integer[][] posChickens = new Integer[4][4];
@@ -48,13 +57,17 @@ public class Road extends JFrame{
         
         this.iconFreeway = new ImageIcon(getClass().getResource("..\\images\\background.png"));
         this.lRoad = new JLabel(iconFreeway);
-        this.iconChicken = new ImageIcon(getClass().getResource("..\\images\\chicken.gif"));
+        this.iconChicken = new ImageIcon(getClass().getResource("..\\images\\chicken.png"));
         this.lChicken = new JLabel(iconChicken);
+        this.explosion = new ImageIcon(getClass().getResource("..\\images\\explosion.gif"));
+        this.lExplosion = new JLabel(explosion);
+        this.lscore = new JLabel("Score: 0");
         this.othersChickens = new ArrayList<>();
         this.posChickenX = posChickenX;
         this.posChickenY = posChickenY;
         this.posChickenXInitial = posChickenX;
         this.posChickenYInitial = posChickenY;
+        this.score = 0;
         this.id = id;
         this.port = port;
         this.initOtherChickens();
@@ -70,9 +83,9 @@ public class Road extends JFrame{
     
     private void initOtherChickens(){
         
-        for (int i=0; i<3; i++){
+        for (int i=0; i<4; i++){
             othersChickens.add(new JLabel(iconChicken));
-            othersChickens.get(i).setBounds(posChickenXInitial, posChickenYInitial, 64, 64);
+            othersChickens.get(i).setBounds(posChickenXInitial, posChickenYInitial, 50, 50);
         }
     }
     
@@ -87,14 +100,12 @@ public class Road extends JFrame{
         pos[2] = 424;
         pos[3] = 336;
         
-        int countCars = 0;
         for(int k=0; k<4; k++){
-            for(int i=0; i<4; i++){
+            for(int i=0; i<2; i++){
                 Random image = new Random();
                 ImageIcon iconCar = new ImageIcon(getClass().getResource("..\\images\\carsright\\"+images[image.nextInt(images.length)]));
                 JLabel car = new JLabel(iconCar);
-                car.setBounds((-80-(i*500)), pos[k], 100, 100);
-                pos[countCars] = (-80-(i*500));
+                car.setBounds((-80-(i*500)), pos[k], 5, 5);
                 cars.add(car);
             }
         }
@@ -111,14 +122,12 @@ public class Road extends JFrame{
         pos[2] = 132;
         pos[3] = 72;
         
-        int countCars = 0;
         for(int k=0; k<4; k++){
-            for(int i=0; i<4; i++){
+            for(int i=0; i<2; i++){
                 Random image = new Random();
                 ImageIcon iconCar = new ImageIcon(getClass().getResource("..\\images\\carsright\\"+images[image.nextInt(images.length)]));
                 JLabel car = new JLabel(iconCar);
-                car.setBounds((1280+(i*500)), pos[k], 100, 100);
-                pos[countCars] = (1280+(i*500));
+                car.setBounds((1280+(i*500)), pos[k], 5, 5);
                 cars.add(car);
             }
         }
@@ -134,6 +143,7 @@ public class Road extends JFrame{
         setLayout(null);
         setResizable(false);
         
+        add(lscore);
         add(lChicken);
         
         for (int i=0; i<othersChickens.size(); i++){
@@ -149,7 +159,10 @@ public class Road extends JFrame{
     
     public void editComponents(){
         lRoad.setBounds(0, 0, 1280, 720);
-        lChicken.setBounds(posChickenXInitial, posChickenYInitial, 64, 64);
+        lscore.setBounds(0, 60, 100, 100);
+        lscore.setForeground(Color.red);
+        lscore.setSize(new Dimension(100, 100));
+        lChicken.setBounds(posChickenXInitial, posChickenYInitial, 50, 50);
     }
     
  private void addMoviments(){
@@ -191,12 +204,17 @@ public class Road extends JFrame{
                 }
                 
                 if((posChickenX > 0 && posChickenX < 1200) && (posChickenY > 0 && posChickenY <= 600)){
-                    lChicken.setBounds(posChickenX, posChickenY, 64, 64);
+                    lChicken.setBounds(posChickenX, posChickenY, 20, 20);
                 }else if(posChickenY < 0){
+                    new PlaySound("..\\sounds\\coins.wav").start();
                     posChickenX = posChickenXInitial;
                     posChickenY = posChickenYInitial;
-                    lChicken.setBounds(posChickenXInitial, posChickenYInitial, 64, 64);
+                    lChicken.setBounds(posChickenXInitial, posChickenYInitial, 50, 50);
+                    score += 10;
+                    lscore.setText("Score: " + score);
                 }
+                
+                new Colision().start();
             }
 
             @Override
@@ -204,6 +222,52 @@ public class Road extends JFrame{
                 //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
             }
         });
+    }
+ 
+    public class PlaySound extends Thread{
+        
+        public String path;
+        
+        public PlaySound(String path){
+            this.path = path;
+        }
+        
+        @Override
+        public void run(){
+            URL sound = getClass().getResource(path);
+            AudioClip s = Applet.newAudioClip(sound);
+            s.play();
+            //s.stop();
+        }
+    }
+ 
+    public class Colision extends Thread{
+        
+        @Override
+        public void run(){
+            
+            for(int i=0; i<cars.size(); i++){
+                if (bateu(lChicken, cars.get(i))) {
+                    
+                    add(lExplosion);
+                    lExplosion.setBounds(posChickenX, posChickenY, 100, 100);
+                    
+                    try{
+                        sleep(15);
+                    }catch(InterruptedException e){
+                        System.out.println("Erro " + e.getMessage());
+                    }
+                    
+                    remove(lExplosion);
+                    posChickenX = posChickenXInitial;
+                    posChickenY = posChickenYInitial;
+                    score -= 5;
+                    lscore.setText("Score: " + score);
+                    lChicken.setBounds(posChickenXInitial, posChickenYInitial, 50, 50);
+                    new PlaySound("..\\sounds\\chicken.wav").start();
+                }
+            }
+        }
     }
  
     public class MoveCarsRight extends Thread{
@@ -251,7 +315,7 @@ public class Road extends JFrame{
         }
     }
     
-     public class MoveCarsLeft extends Thread{
+    public class MoveCarsLeft extends Thread{
         @Override
         public void run(){
             
@@ -357,6 +421,7 @@ public class Road extends JFrame{
         public void run(){
             
             Socket client = null;
+            System.out.println("Port " + (port+100));
             
             try {
                 client = new Socket("192.168.0.100", port+100);
@@ -401,4 +466,46 @@ public class Road extends JFrame{
             }
         }
     }
+    
+    public boolean bateu(Component a, Component b) {
+		int aX = a.getX();
+		int aY = a.getY();
+		int ladoDireitoA = aX+a.getWidth();
+		int ladoEsquerdoA= aX;
+		int ladoBaixoA= aY+a.getHeight();
+		int ladoCimaA= aY;
+		
+		int bX = b.getX();
+		int bY = b.getY();
+		int ladoDireitoB = bX+b.getWidth();
+		int ladoEsquerdoB= bX;
+		int ladoBaixoB= bY+b.getHeight();
+		int ladoCimaB= bY;
+		
+		boolean bateu = false;
+		
+		boolean cDireita=false;
+		boolean cCima=false;
+		boolean cBaixo=false;
+		boolean cEsquerda=false;
+		
+		if(ladoDireitoA>=ladoEsquerdoB) {
+			cDireita=true;
+		}
+		if(ladoCimaA<=ladoBaixoB) {
+			cCima=true;
+		}
+		if(ladoBaixoA>=ladoCimaB) {
+			cBaixo=true;
+		}
+		if(ladoEsquerdoA<=ladoDireitoB) {
+			cEsquerda=true;
+		}
+		
+		if(cDireita && cEsquerda && cBaixo && cCima) {
+			bateu = true;
+		}
+			
+		return bateu;
+        }
 }
