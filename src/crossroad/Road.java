@@ -42,6 +42,7 @@ public class Road extends JFrame{
     private final ImageIcon explosion;
     private final JLabel lExplosion;
     private final JLabel lscore;
+    private final JLabel lTime;
     private final ArrayList<JLabel> othersChickens;
     private final ArrayList<JLabel> cars;
     private final int[] posCars;
@@ -62,6 +63,7 @@ public class Road extends JFrame{
         this.explosion = new ImageIcon(getClass().getResource("..\\images\\explosion.gif"));
         this.lExplosion = new JLabel(explosion);
         this.lscore = new JLabel("Score: 0");
+        this.lTime = new JLabel("3");
         this.othersChickens = new ArrayList<>();
         this.posChickenX = posChickenX;
         this.posChickenY = posChickenY;
@@ -75,10 +77,30 @@ public class Road extends JFrame{
         this.posCars = new int[160];
         this.initCarsRight();
         this.initCarsLeft();
+        this.initTime();
         this.addMoviments();
         new MoveCarsRight().start();
         new MoveCarsLeft().start();
         new MoveChikens().start();
+    }
+    
+    private void initTime(){
+        
+        Thread t = new Thread();
+        
+        for (int i=3; i>=0; i--){
+           
+            try {
+                t.sleep(100);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+            if(i != 0)
+                lTime.setText(""+i);
+            else
+                lTime.setText("JÁ !!!");
+        }
     }
     
     private void initOtherChickens(){
@@ -143,6 +165,7 @@ public class Road extends JFrame{
         setLayout(null);
         setResizable(false);
         
+        add(lTime);
         add(lscore);
         add(lChicken);
         
@@ -162,6 +185,8 @@ public class Road extends JFrame{
         lscore.setBounds(0, 60, 100, 100);
         lscore.setForeground(Color.red);
         lscore.setSize(new Dimension(100, 100));
+        lTime.setForeground(Color.red);
+        lTime.setBounds(560, 60, 600, 600);
         lChicken.setBounds(posChickenXInitial, posChickenYInitial, 50, 50);
     }
     
@@ -204,7 +229,7 @@ public class Road extends JFrame{
                 }
                 
                 if((posChickenX > 0 && posChickenX < 1200) && (posChickenY > 0 && posChickenY <= 600)){
-                    lChicken.setBounds(posChickenX, posChickenY, 20, 20);
+                    lChicken.setBounds(posChickenX, posChickenY, 50, 50);
                 }else if(posChickenY < 0){
                     new PlaySound("..\\sounds\\coins.wav").start();
                     posChickenX = posChickenXInitial;
@@ -368,10 +393,15 @@ public class Road extends JFrame{
             
             while(true){
                 
-                Socket client = null;
-                
                 try {
-                    client = new Socket("192.168.0.100", port+200);
+                    sleep(20);
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                
+                Socket client = null;
+                try {
+                    client = new Socket("192.168.0.105", port+200);
                 } catch (IOException ex) {
                     Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -395,7 +425,7 @@ public class Road extends JFrame{
                 for (int i=0; i<posChickens.length; i++){
                     if(i != id){
                         try{
-                            othersChickens.get(i).setBounds(posChickens[i][1], posChickens[i][2], 64, 64);
+                            othersChickens.get(i).setBounds(posChickens[i][1], posChickens[i][2], 50, 50);
                         }catch(Exception e){
                             continue;
                         }
@@ -424,7 +454,7 @@ public class Road extends JFrame{
             System.out.println("Port " + (port+100));
             
             try {
-                client = new Socket("192.168.0.100", port+100);
+                client = new Socket("192.168.0.105", port+100);
             } catch (IOException ex) {
                 Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
             }
