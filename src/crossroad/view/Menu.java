@@ -63,13 +63,13 @@ public class Menu extends javax.swing.JFrame {
 
     private void jButtonOnlineActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonOnlineActionPerformed
         
-        new Main().onlineMode();
+        new SetBackGround(1);
         this.dispose();
     }//GEN-LAST:event_jButtonOnlineActionPerformed
 
     private void jButtonOfflineActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonOfflineActionPerformed
         
-        Main.offlineMode();
+        new SetBackGround(0);
         this.dispose();
     }//GEN-LAST:event_jButtonOfflineActionPerformed
 

@@ -43,45 +43,56 @@ public class Road extends JFrame{
     private final JLabel lExplosion;
     private final JLabel lscore;
     private final JLabel lTime;
+    private final JLabel lLife;
     private final ArrayList<JLabel> othersChickens;
     private final ArrayList<JLabel> cars;
-    private final int[] posCars;
     
     private int posChickenX, posChickenXInitial;
     private int posChickenY, posChickenYInitial;
-    private int score;
+    private int score, life, mode;
+    private boolean canMove;
+    private int[] velocity = new int[4];
     
     private int id, port;
     private Integer[][] posChickens = new Integer[4][4];
 
-    public Road(int posChickenX, int posChickenY, int id, int port) {
+    public Road(int posChickenX, int posChickenY, int id, int port, int mode, String path, String backGround) {
         
-        this.iconFreeway = new ImageIcon(getClass().getResource("..\\images\\background.png"));
+        this.iconFreeway = new ImageIcon(getClass().getResource(backGround));
         this.lRoad = new JLabel(iconFreeway);
-        this.iconChicken = new ImageIcon(getClass().getResource("..\\images\\chicken.png"));
+        this.iconChicken = new ImageIcon(getClass().getResource(path));
         this.lChicken = new JLabel(iconChicken);
         this.explosion = new ImageIcon(getClass().getResource("..\\images\\explosion.gif"));
         this.lExplosion = new JLabel(explosion);
         this.lscore = new JLabel("Score: 0");
         this.lTime = new JLabel("3");
+        this.lLife = new JLabel("Vida: 5");
         this.othersChickens = new ArrayList<>();
         this.posChickenX = posChickenX;
         this.posChickenY = posChickenY;
         this.posChickenXInitial = posChickenX;
         this.posChickenYInitial = posChickenY;
+        this.canMove = true;
         this.score = 0;
+        this.life = 5;
         this.id = id;
         this.port = port;
+        this.mode = mode;
         this.initOtherChickens();
         this.cars = new ArrayList<>();
-        this.posCars = new int[160];
         this.initCarsRight();
         this.initCarsLeft();
         this.initTime();
+        this.velocity[0] = 2; this.velocity[1] = 3; this.velocity[2] = 7;; this.velocity[3] = 10;
         this.addMoviments();
         new MoveCarsRight().start();
         new MoveCarsLeft().start();
         new MoveChikens().start();
+        new ThreadWin().start();
+        new Dificulty().start();
+        new PlaySound("..\\sounds\\Buzina_006.wav").start();
+        new PlaySound("..\\sounds\\Buzina_002.wav").start();
+        new PlaySound("..\\sounds\\Buzina_003.wav").start();
     }
     
     private void initTime(){
@@ -104,14 +115,26 @@ public class Road extends JFrame{
     }
     
     private void initOtherChickens(){
-        
+        System.out.println(id);
         for (int i=0; i<4; i++){
-            othersChickens.add(new JLabel(iconChicken));
-            othersChickens.get(i).setBounds(posChickenXInitial, posChickenYInitial, 50, 50);
+
+            ImageIcon image = new ImageIcon(getClass().getResource("..\\images\\chicken" + (i + 1) + ".gif"));
+            othersChickens.add(new JLabel(image));
+            if (i == 0) {
+                othersChickens.get(i).setBounds(44, 600, 50, 50);
+            } else if (i == 1) {
+                othersChickens.get(i).setBounds(364, 600, 50, 50);
+            } else if (i == 2) {
+                othersChickens.get(i).setBounds(626, 600, 50, 50);
+            } else if (i == 3) {
+                othersChickens.get(i).setBounds(940, 600, 50, 50);
+            }
         }
     }
     
     private void initCarsRight(){
+        
+        new PlaySound("..\\sounds\\buzinaBase.wav").start();
         
         File dir = new File("src\\images\\carsright");
        
@@ -122,10 +145,15 @@ public class Road extends JFrame{
         pos[2] = 424;
         pos[3] = 336;
         
+        int count = 0;
+        
         for(int k=0; k<4; k++){
             for(int i=0; i<2; i++){
-                Random image = new Random();
-                ImageIcon iconCar = new ImageIcon(getClass().getResource("..\\images\\carsright\\"+images[image.nextInt(images.length)]));
+                ImageIcon iconCar = new ImageIcon(getClass().getResource("..\\images\\carsright\\"+images[count]));
+                
+                count++;
+                if(count >= images.length) count = 0;
+                
                 JLabel car = new JLabel(iconCar);
                 car.setBounds((-80-(i*500)), pos[k], 5, 5);
                 cars.add(car);
@@ -144,16 +172,20 @@ public class Road extends JFrame{
         pos[2] = 132;
         pos[3] = 72;
         
+        int count = 0;
+        
         for(int k=0; k<4; k++){
             for(int i=0; i<2; i++){
-                Random image = new Random();
-                ImageIcon iconCar = new ImageIcon(getClass().getResource("..\\images\\carsright\\"+images[image.nextInt(images.length)]));
+                ImageIcon iconCar = new ImageIcon(getClass().getResource("..\\images\\carsright\\"+images[count]));
+                
+                count++;
+                if(count >= images.length) count = 0;
+                
                 JLabel car = new JLabel(iconCar);
                 car.setBounds((1280+(i*500)), pos[k], 5, 5);
                 cars.add(car);
             }
         }
-        //System.out.println(cars.size());
     }
     
     public void initRoad(){
@@ -167,10 +199,12 @@ public class Road extends JFrame{
         
         add(lTime);
         add(lscore);
+        add(lLife);
         add(lChicken);
         
         for (int i=0; i<othersChickens.size(); i++){
-            add(othersChickens.get(i));
+            if(id != i)
+                add(othersChickens.get(i));
         }
         
         for (int i=0; i<cars.size(); i++){
@@ -187,6 +221,8 @@ public class Road extends JFrame{
         lscore.setSize(new Dimension(100, 100));
         lTime.setForeground(Color.red);
         lTime.setBounds(560, 60, 600, 600);
+        lLife.setForeground(Color.red);
+        lLife.setBounds(0, 80, 100, 100);
         lChicken.setBounds(posChickenXInitial, posChickenYInitial, 50, 50);
     }
     
@@ -199,47 +235,37 @@ public class Road extends JFrame{
 
             @Override
             public void keyPressed(KeyEvent ke) {
-                int auxX = posChickenX;
-                int auxY = posChickenY;
-                //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-                if(ke.getKeyCode() == 37){
-                    if((auxX -= 64) > 0){
-                        posChickenX -= 64;
+                if(canMove){
+                    int auxY = posChickenY;
+                    //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    if(ke.getKeyCode() == 38){
+                        posChickenY -= 44;
                         new SendChicken(id, posChickenX, posChickenY).start();
                     }
-                }
-                
-                if(ke.getKeyCode() == 38){
-                    posChickenY -= 44;
-                    new SendChicken(id, posChickenX, posChickenY).start();
-                }
-                
-                if(ke.getKeyCode() == 39){
-                    if((auxX += 64) < 1260){
-                        posChickenX += 64;
-                        new SendChicken(id, posChickenX, posChickenY).start();
+
+                    if(ke.getKeyCode() == 40){
+                        if((auxY += 44) <= 600){
+                            posChickenY += 44;
+                            new SendChicken(id, posChickenX, posChickenY).start();
+                        }
                     }
-                }
-                
-                if(ke.getKeyCode() == 40){
-                    if((auxY += 44) <= 600){
-                        posChickenY += 44;
-                        new SendChicken(id, posChickenX, posChickenY).start();
+
+                    System.out.println(posChickenY);
+
+                    if((posChickenX > 0 && posChickenX < 1200) && (posChickenY > 0 && posChickenY <= 600)){
+                        lChicken.setBounds(posChickenX, posChickenY, 50, 50);
+                    }else if(posChickenY < 0){
+                        new PlaySound("..\\sounds\\coins.wav").start();
+                        posChickenX = posChickenXInitial;
+                        posChickenY = posChickenYInitial;
+                        lChicken.setBounds(posChickenXInitial, posChickenYInitial, 50, 50);
+                        score += 1;
+                        lscore.setText("Score: " + score);
+                        new SendChicken(id, posChickenXInitial, posChickenYInitial).start();
                     }
+
+                    new Colision().start();
                 }
-                
-                if((posChickenX > 0 && posChickenX < 1200) && (posChickenY > 0 && posChickenY <= 600)){
-                    lChicken.setBounds(posChickenX, posChickenY, 50, 50);
-                }else if(posChickenY < 0){
-                    new PlaySound("..\\sounds\\coins.wav").start();
-                    posChickenX = posChickenXInitial;
-                    posChickenY = posChickenYInitial;
-                    lChicken.setBounds(posChickenXInitial, posChickenYInitial, 50, 50);
-                    score += 10;
-                    lscore.setText("Score: " + score);
-                }
-                
-                new Colision().start();
             }
 
             @Override
@@ -262,7 +288,7 @@ public class Road extends JFrame{
             URL sound = getClass().getResource(path);
             AudioClip s = Applet.newAudioClip(sound);
             s.play();
-            //s.stop();
+            s.loop();
         }
     }
  
@@ -286,10 +312,18 @@ public class Road extends JFrame{
                     remove(lExplosion);
                     posChickenX = posChickenXInitial;
                     posChickenY = posChickenYInitial;
-                    score -= 5;
-                    lscore.setText("Score: " + score);
+                    life -= 1;
+                    lLife.setText("Vida: " + (life));
                     lChicken.setBounds(posChickenXInitial, posChickenYInitial, 50, 50);
                     new PlaySound("..\\sounds\\chicken.wav").start();
+                    new SendChicken(id, posChickenXInitial, posChickenYInitial).start();
+                    
+                    if(life == 0 && mode == 1){
+                        canMove = false;
+                        JOptionPane.showMessageDialog(null, "Você perdeu! Espere o jogo terminar");
+                        lChicken.setBounds(-200, -200, 50, 50);
+                        new SendChicken(id, -200, -200).start();
+                    }
                 }
             }
         }
@@ -312,28 +346,28 @@ public class Road extends JFrame{
                         if(cars.get(i).getX() > 1280)
                             cars.get(i).setBounds(-80, cars.get(i).getY(), 100, 100);
 
-                        cars.get(i).setBounds((cars.get(i).getX() + 2), cars.get(i).getY(), 100, 100);
+                        cars.get(i).setBounds((cars.get(i).getX() + velocity[0]), cars.get(i).getY(), 100, 100);
                     }
                     
                     if(cars.get(i).getY() == 468){
                         if(cars.get(i).getX() > 1280)
                             cars.get(i).setBounds(-80, cars.get(i).getY(), 100, 100);
 
-                        cars.get(i).setBounds((cars.get(i).getX() + 3), cars.get(i).getY(), 100, 100);
+                        cars.get(i).setBounds((cars.get(i).getX() + velocity[1]), cars.get(i).getY(), 100, 100);
                     }
                     
                     if(cars.get(i).getY() == 424){
                         if(cars.get(i).getX() > 1280)
                             cars.get(i).setBounds(-80, cars.get(i).getY(), 100, 100);
 
-                        cars.get(i).setBounds((cars.get(i).getX() + 7), cars.get(i).getY(), 100, 100);
+                        cars.get(i).setBounds((cars.get(i).getX() + velocity[2]), cars.get(i).getY(), 100, 100);
                     }
                     
                     if(cars.get(i).getY() == 336){
                         if(cars.get(i).getX() > 1280)
                             cars.get(i).setBounds(-80, cars.get(i).getY(), 100, 100);
 
-                        cars.get(i).setBounds((cars.get(i).getX() + 10), cars.get(i).getY(), 100, 100);
+                        cars.get(i).setBounds((cars.get(i).getX() + velocity[3]), cars.get(i).getY(), 100, 100);
                     }
                 }    
             }
@@ -358,28 +392,28 @@ public class Road extends JFrame{
                         if(cars.get(i).getX() < -80)
                             cars.get(i).setBounds(1280, cars.get(i).getY(), 100, 100);
 
-                        cars.get(i).setBounds((cars.get(i).getX() - 2), cars.get(i).getY(), 100, 100);
+                        cars.get(i).setBounds((cars.get(i).getX() - velocity[0]), cars.get(i).getY(), 100, 100);
                     }
                     
                     if(cars.get(i).getY() == 132){
                         if(cars.get(i).getX() < -80)
                             cars.get(i).setBounds(1280, cars.get(i).getY(), 100, 100);
 
-                        cars.get(i).setBounds((cars.get(i).getX() - 3), cars.get(i).getY(), 100, 100);
+                        cars.get(i).setBounds((cars.get(i).getX() - velocity[1]), cars.get(i).getY(), 100, 100);
                     }
                     
                     if(cars.get(i).getY() == 204){
                         if(cars.get(i).getX() < -80)
                             cars.get(i).setBounds(1280, cars.get(i).getY(), 100, 100);
 
-                        cars.get(i).setBounds((cars.get(i).getX() - 7), cars.get(i).getY(), 100, 100);
+                        cars.get(i).setBounds((cars.get(i).getX() - velocity[2]), cars.get(i).getY(), 100, 100);
                     }
                     
                     if(cars.get(i).getY() == 292){
                         if(cars.get(i).getX() < -80)
                             cars.get(i).setBounds(1280, cars.get(i).getY(), 100, 100);
 
-                        cars.get(i).setBounds((cars.get(i).getX() - 10), cars.get(i).getY(), 100, 100);
+                        cars.get(i).setBounds((cars.get(i).getX() - velocity[3]), cars.get(i).getY(), 100, 100);
                     }
                 }    
             }
@@ -401,9 +435,11 @@ public class Road extends JFrame{
                 
                 Socket client = null;
                 try {
-                    client = new Socket("192.168.0.105", port+200);
+                    client = new Socket("192.168.0.104", port+200);
                 } catch (IOException ex) {
                     Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
+                    port += 1000;
+                    continue;
                 }
                 
                 ObjectInputStream io = null;
@@ -454,7 +490,7 @@ public class Road extends JFrame{
             System.out.println("Port " + (port+100));
             
             try {
-                client = new Socket("192.168.0.105", port+100);
+                client = new Socket("192.168.0.104", port+100);
             } catch (IOException ex) {
                 Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -538,4 +574,91 @@ public class Road extends JFrame{
 			
 		return bateu;
         }
+    
+    public class ThreadWin extends Thread{
+        
+        @Override
+        public void run(){
+            System.out.println(port+300);
+            String w = "";
+            
+            while(true){
+                
+                try {
+                    sleep(20);
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                
+                Socket client = null;
+                try {
+                    client = new Socket("192.168.0.104", port+300);
+                } catch (IOException ex) {
+                    Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                
+                ObjectInputStream io = null;
+                
+                try {
+                    io = new ObjectInputStream(client.getInputStream());
+                } catch (IOException ex) {
+                    Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                
+                try {
+                    w = (String) io.readObject();
+                } catch (IOException ex) {
+                    Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (ClassNotFoundException ex) {
+                    Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                
+                if(!w.equals("NULL")){
+                    
+                    canMove = false;
+                    int option = JOptionPane.showConfirmDialog(null, w + "\nDeseja jogar Novamente?");
+                    
+                    if(option == 0){
+                        dispose();
+                        new Main().onlineMode();
+                    }else{
+                        System.exit(1);
+                    }
+                }
+                
+            }
+        }
+    }
+    
+    public class Dificulty extends Thread{
+        
+        @Override
+        public void run(){
+            
+            for(int i=0; i<3 ; i++){
+                
+                try {
+                    sleep(60000);
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                
+                velocity[0] += 2;
+                velocity[1] += 2;
+                velocity[2] += 2;
+                velocity[3] += 2;
+                
+                if(i == 1){
+                    new PlaySound("..\\sounds\\Buzina_004.wav").start();
+                    new PlaySound("..\\sounds\\Buzina_005.wav").start();
+                    //new PlaySound("..\\sounds\\Buzina_001.wav").start();
+                }else{
+                    new PlaySound("..\\sounds\\Buzina_007.wav").start();
+                    new PlaySound("..\\sounds\\Buzina_008.wav").start();
+                    new PlaySound("..\\sounds\\Buzina_009.wav").start();
+                }
+                
+            }
+        } 
+    }
 }
