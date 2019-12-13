@@ -33,8 +33,6 @@ public class Loading extends javax.swing.JFrame {
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-
         jLabel1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/Chicken_Loading.gif"))); // NOI18N
 
         jLabel2.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N

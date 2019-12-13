@@ -55,8 +55,10 @@ public class Road extends JFrame{
     
     private int id, port;
     private Integer[][] posChickens = new Integer[4][4];
+    
+    private String ip;
 
-    public Road(int posChickenX, int posChickenY, int id, int port, int mode, String path, String backGround) {
+    public Road(int posChickenX, int posChickenY, int id, int port, int mode, String path, String backGround, String ip) {
         
         this.iconFreeway = new ImageIcon(getClass().getResource(backGround));
         this.lRoad = new JLabel(iconFreeway);
@@ -76,6 +78,7 @@ public class Road extends JFrame{
         this.score = 0;
         this.life = 5;
         this.id = id;
+        this.ip = ip;
         this.port = port;
         this.mode = mode;
         this.initOtherChickens();
@@ -90,11 +93,10 @@ public class Road extends JFrame{
         new MoveChikens().start();
         new ThreadWin().start();
         new Dificulty().start();
-        new PlaySound("..\\sounds\\Buzina_006.wav").start();
-        new PlaySound("..\\sounds\\Buzina_002.wav").start();
-        new PlaySound("..\\sounds\\Buzina_003.wav").start();
+        new PlaySound("..\\sounds\\soundBase.wav", 1).start();
     }
     
+     /* 1 2 3 já */
     private void initTime(){
         
         Thread t = new Thread();
@@ -114,11 +116,12 @@ public class Road extends JFrame{
         }
     }
     
+    /* Inicia as galinhas com as posições iniciais */
     private void initOtherChickens(){
-        System.out.println(id);
+       
         for (int i=0; i<4; i++){
 
-            ImageIcon image = new ImageIcon(getClass().getResource("..\\images\\chicken" + (i + 1) + ".gif"));
+            ImageIcon image = new ImageIcon(getClass().getResource("..\\images\\chicken" + (i + 1) + ".png"));
             othersChickens.add(new JLabel(image));
             if (i == 0) {
                 othersChickens.get(i).setBounds(44, 600, 50, 50);
@@ -132,13 +135,14 @@ public class Road extends JFrame{
         }
     }
     
+    /* inicia os carros da direita */
     private void initCarsRight(){
         
-        new PlaySound("..\\sounds\\buzinaBase.wav").start();
+       // new PlaySound("..\\sounds\\buzinaBase.wav", 1).start();
         
-        File dir = new File("src\\images\\carsright");
+        File dir = new File("src\\images\\carsright"); 
        
-        String images[] = dir.list();
+        String images[] = dir.list(); //lista todas as imagens do diretório
         int pos[] = new int[4];
         pos[0] = 556;
         pos[1] = 468;
@@ -149,7 +153,7 @@ public class Road extends JFrame{
         
         for(int k=0; k<4; k++){
             for(int i=0; i<2; i++){
-                ImageIcon iconCar = new ImageIcon(getClass().getResource("..\\images\\carsright\\"+images[count]));
+                ImageIcon iconCar = new ImageIcon(getClass().getResource("..\\images\\carsright\\"+images[count])); //recebe uma imagem
                 
                 count++;
                 if(count >= images.length) count = 0;
@@ -161,6 +165,7 @@ public class Road extends JFrame{
         }
     }
     
+    /* inicia os carros da esquerda */
     private void initCarsLeft(){
         
         File dir = new File("src\\images\\carsleft");
@@ -176,7 +181,7 @@ public class Road extends JFrame{
         
         for(int k=0; k<4; k++){
             for(int i=0; i<2; i++){
-                ImageIcon iconCar = new ImageIcon(getClass().getResource("..\\images\\carsright\\"+images[count]));
+                ImageIcon iconCar = new ImageIcon(getClass().getResource("..\\images\\carsleft\\"+images[count]));
                 
                 count++;
                 if(count >= images.length) count = 0;
@@ -188,6 +193,7 @@ public class Road extends JFrame{
         }
     }
     
+    /* Inicia a tela e os labels */
     public void initRoad(){
         
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -214,6 +220,7 @@ public class Road extends JFrame{
         add(lRoad);
     }
     
+    /* altera o tamanho dos componentes */
     public void editComponents(){
         lRoad.setBounds(0, 0, 1280, 720);
         lscore.setBounds(0, 60, 100, 100);
@@ -226,7 +233,8 @@ public class Road extends JFrame{
         lChicken.setBounds(posChickenXInitial, posChickenYInitial, 50, 50);
     }
     
- private void addMoviments(){
+    /* Recebe os movimentos */
+    private void addMoviments(){
         addKeyListener(new KeyListener() {
             @Override
             public void keyTyped(KeyEvent ke) {
@@ -235,7 +243,7 @@ public class Road extends JFrame{
 
             @Override
             public void keyPressed(KeyEvent ke) {
-                if(canMove){
+                if(canMove){ // verifica se a galinha pode se mover
                     int auxY = posChickenY;
                     //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
                     if(ke.getKeyCode() == 38){
@@ -250,12 +258,11 @@ public class Road extends JFrame{
                         }
                     }
 
-                    System.out.println(posChickenY);
-
-                    if((posChickenX > 0 && posChickenX < 1200) && (posChickenY > 0 && posChickenY <= 600)){
+                    /* restringe os movimentos para dentro da tela e reinicia a posição da galinha quando atravessar a rua */
+                    if((posChickenX > 0 && posChickenX < 1200) && (posChickenY > 0 && posChickenY <= 600)){ 
                         lChicken.setBounds(posChickenX, posChickenY, 50, 50);
                     }else if(posChickenY < 0){
-                        new PlaySound("..\\sounds\\coins.wav").start();
+                        new PlaySound("..\\sounds\\coins.wav", 0).start();
                         posChickenX = posChickenXInitial;
                         posChickenY = posChickenYInitial;
                         lChicken.setBounds(posChickenXInitial, posChickenYInitial, 50, 50);
@@ -275,12 +282,15 @@ public class Road extends JFrame{
         });
     }
  
+    /* Thread para música */
     public class PlaySound extends Thread{
         
         public String path;
+        public int flag;
         
-        public PlaySound(String path){
+        public PlaySound(String path, int flag){
             this.path = path;
+            this.flag = flag;
         }
         
         @Override
@@ -288,10 +298,12 @@ public class Road extends JFrame{
             URL sound = getClass().getResource(path);
             AudioClip s = Applet.newAudioClip(sound);
             s.play();
-            s.loop();
+            if(flag == 1)
+                s.loop();
         }
     }
  
+    /* verifica colisões */
     public class Colision extends Thread{
         
         @Override
@@ -314,11 +326,11 @@ public class Road extends JFrame{
                     posChickenY = posChickenYInitial;
                     life -= 1;
                     lLife.setText("Vida: " + (life));
-                    lChicken.setBounds(posChickenXInitial, posChickenYInitial, 50, 50);
-                    new PlaySound("..\\sounds\\chicken.wav").start();
-                    new SendChicken(id, posChickenXInitial, posChickenYInitial).start();
+                    lChicken.setBounds(posChickenXInitial, posChickenYInitial, 50, 50); //reiniia a posição da galinha
+                    new PlaySound("..\\sounds\\chicken.wav", 0).start();
+                    new SendChicken(id, posChickenXInitial, posChickenYInitial).start(); //envia posição para o servidor
                     
-                    if(life == 0 && mode == 1){
+                    if(life == 0 && mode == 1){ //se o jogo é online e a galinha morrer, retira a galinha da tela e exibe a mensagem
                         canMove = false;
                         JOptionPane.showMessageDialog(null, "Você perdeu! Espere o jogo terminar");
                         lChicken.setBounds(-200, -200, 50, 50);
@@ -329,6 +341,7 @@ public class Road extends JFrame{
         }
     }
  
+    /* movimentação dos carros */
     public class MoveCarsRight extends Thread{
         @Override
         public void run(){    
@@ -340,7 +353,7 @@ public class Road extends JFrame{
                     JOptionPane.showMessageDialog(null, "Erro na Thread" + ex.getMessage());
                 }
                 
-                for(int i=0; i<cars.size(); i++){
+                for(int i=0; i<cars.size(); i++){ //altera som, posição e velocidade dos carros
                     
                     if(cars.get(i).getY() == 556){
                         if(cars.get(i).getX() > 1280)
@@ -420,6 +433,7 @@ public class Road extends JFrame{
         }
     }
      
+    /* recebe as posições das outras galinhas */
     public class MoveChikens extends Thread{
         
         @Override
@@ -435,7 +449,7 @@ public class Road extends JFrame{
                 
                 Socket client = null;
                 try {
-                    client = new Socket("192.168.0.104", port+200);
+                    client = new Socket(ip, port+200); //inicia a porta
                 } catch (IOException ex) {
                     Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
                     port += 1000;
@@ -451,14 +465,14 @@ public class Road extends JFrame{
                 }
                 
                 try {
-                    posChickens = (Integer[][]) io.readObject();
+                    posChickens = (Integer[][]) io.readObject(); //recebe a matriz de posições
                 } catch (IOException ex) {
                     Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
                 } catch (ClassNotFoundException ex) {
                     Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
                 }
                 
-                for (int i=0; i<posChickens.length; i++){
+                for (int i=0; i<posChickens.length; i++){ //atualiza as posições
                     if(i != id){
                         try{
                             othersChickens.get(i).setBounds(posChickens[i][1], posChickens[i][2], 50, 50);
@@ -472,6 +486,7 @@ public class Road extends JFrame{
         
     }
     
+    /* envia os movimentos da galinha */
     public class SendChicken extends Thread{
         
         public int id, x, y;
@@ -487,10 +502,9 @@ public class Road extends JFrame{
         public void run(){
             
             Socket client = null;
-            System.out.println("Port " + (port+100));
             
             try {
-                client = new Socket("192.168.0.104", port+100);
+                client = new Socket(ip, port+100);
             } catch (IOException ex) {
                 Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -575,11 +589,12 @@ public class Road extends JFrame{
 		return bateu;
         }
     
+    /* Recebe os status do jogo */
     public class ThreadWin extends Thread{
         
         @Override
         public void run(){
-            System.out.println(port+300);
+
             String w = "";
             
             while(true){
@@ -592,7 +607,7 @@ public class Road extends JFrame{
                 
                 Socket client = null;
                 try {
-                    client = new Socket("192.168.0.104", port+300);
+                    client = new Socket(ip, port+300);
                 } catch (IOException ex) {
                     Logger.getLogger(Road.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -616,7 +631,7 @@ public class Road extends JFrame{
                 if(!w.equals("NULL")){
                     
                     canMove = false;
-                    int option = JOptionPane.showConfirmDialog(null, w + "\nDeseja jogar Novamente?");
+                    int option = JOptionPane.showConfirmDialog(null, w + "Deseja jogar novamente?");
                     
                     if(option == 0){
                         dispose();
@@ -625,11 +640,11 @@ public class Road extends JFrame{
                         System.exit(1);
                     }
                 }
-                
             }
         }
     }
     
+    /* Aumenta a velocidade dos carros a cada 1 minuto */
     public class Dificulty extends Thread{
         
         @Override
@@ -647,17 +662,6 @@ public class Road extends JFrame{
                 velocity[1] += 2;
                 velocity[2] += 2;
                 velocity[3] += 2;
-                
-                if(i == 1){
-                    new PlaySound("..\\sounds\\Buzina_004.wav").start();
-                    new PlaySound("..\\sounds\\Buzina_005.wav").start();
-                    //new PlaySound("..\\sounds\\Buzina_001.wav").start();
-                }else{
-                    new PlaySound("..\\sounds\\Buzina_007.wav").start();
-                    new PlaySound("..\\sounds\\Buzina_008.wav").start();
-                    new PlaySound("..\\sounds\\Buzina_009.wav").start();
-                }
-                
             }
         } 
     }
